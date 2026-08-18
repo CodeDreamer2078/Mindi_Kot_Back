@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: mindi-kot-back
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: HOST
+        value: 0.0.0.0
+      - key: CLIENT_URL
+        sync: false
