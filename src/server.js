@@ -16,7 +16,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const PORT = Number(process.env.PORT) || 5000;
-const HOST = process.env.HOST || '0.0.0.0';
+
+/** Unset by default so Node binds dual-stack (IPv4 + IPv6), keeping localhost usable on Windows. */
+const HOST = process.env.HOST || undefined;
 
 /** Comma-separated origins, e.g. https://app.vercel.app,http://localhost:5173 */
 const CLIENT_ORIGINS = (process.env.CLIENT_URL || 'http://localhost:5173')
@@ -86,7 +88,23 @@ const io = new Server(server, {
 gameManager.startCleanupLoop();
 registerSocketHandlers(io, gameManager);
 
-server.listen(PORT, HOST, () => {
-  console.log(`Mindi Kot server listening on http://${HOST}:${PORT}`);
+function onListening() {
+  console.log(`Mindi Kot server listening on http://${HOST || 'localhost'}:${PORT}`);
   console.log(`CORS origins: ${CLIENT_ORIGINS.join(', ')}`);
+}
+
+server.on('error', (error) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use. Stop the other process and retry.`);
+    process.exit(1);
+  }
+
+  console.error('Server error:', error);
+  process.exit(1);
 });
+
+if (HOST) {
+  server.listen(PORT, HOST, onListening);
+} else {
+  server.listen(PORT, onListening);
+}
